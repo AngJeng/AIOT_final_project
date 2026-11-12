@@ -34,6 +34,10 @@ openspec archive smart-hydration-monitoring-agent             # 把 delta 併入
 
 流程：**proposal → specs（SHALL + Scenario）→ design → tasks → apply → archive**。行為變更先改 spec，再改 DESIGN.md 與程式。
 
+驗證結果（`openspec validate --strict` 通過）：
+
+![openspec validate --strict 通過](docs/images/openspec-validate.png)
+
 七個 capability：`drinking-event-detection`、`drinking-behavior-prediction`、`reminder-decision-agent`、`line-feedback-loop`、`hydration-dashboard`、`safety-and-privacy-boundaries`、`strategy-comparison-experiment`。
 
 ## 技術棧（規劃）
