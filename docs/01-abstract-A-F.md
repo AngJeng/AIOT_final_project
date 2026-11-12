@@ -62,31 +62,41 @@ Raspberry Pi 4 + Load Cell + HX711 蒐集杯重時序；Task A（Random Forest�
 | 10 | Privacy | `safety-and-privacy-boundaries` |
 
 **Q1（Why）杯重從 550 g 降到 420 g，為什麼不能直接認定使用者喝了 130 mL？**
+
 重量減少可能來自飲用、倒掉、杯子移位或感測雜訊，而且 130 g ≈ 130 mL 還假設液體密度約 1 g/mL（Illustrative Example）。因此系統先切出「拿起—放回」片段，再分類為 Drinking / Refilling / CupMovement / Other，只有 Drinking 才以 max(0, ΔW)/ρ 計量；被判為 Other 的減重（例如倒掉）不計入當日攝取。→ `drinking-event-detection`
 
 **Q2（What-if）如果使用者直接對瓶口喝、換了杯子，或喝完沒有放回杯墊，系統會怎麼失效？**
+
 這三種情況下杯墊量不到重量變化，或片段無法回到穩定值，事件會漏記，或被歸為 Other。系統不嘗試「猜」這些量，而是在 Dashboard 標示資料缺口，並在限制中明示「杯子未放回或直接對瓶口飲用無法量測」；水密度與「會放回杯墊」都列為未驗證假設。→ `drinking-event-detection`、`DESIGN.md` §12
 
 **Q3（Trade-off）資料量很少時，門檻法與 Random Forest／XGBoost 該如何取捨？為什麼評估要用時間切分？**
+
 門檻法透明、不需訓練資料，但難以區分加水、移動等相似情況；ML 能用斜率、穩定度、片段長度等特徵區分，卻需要人工確認的標註。因此門檻法保留為 Baseline，兩者用同一批標註片段比較 Precision、Recall、F1、Confusion Matrix 與 volume MAE。時間切分（訓練資料一律早於測試資料）是為了避免用「未來」資料預測「過去」造成的洩漏；Task B 在資料不足時改用 Historical Average Rule，且不宣稱已建立可靠的個人化預測。→ `drinking-event-detection`、`drinking-behavior-prediction`
 
 **Q4（Evidence）使用者在提醒後喝了水，怎麼知道是提醒造成的，而不是他本來就會喝？**
+
 單一事件無法證明因果。設計上以策略 A（固定間隔）作為對照，並記錄每則提醒的策略、使用者、時期、順序與回覆；指標採接受率與無效提醒比例等行為指標，且只做描述性比較，不宣稱顯著性或因果效果。→ `strategy-comparison-experiment`
 
 **Q5（Evidence）為什麼不直接用「每天喝 2 L」這種單一規則當目標？**
+
 EFSA 的參考值（女 2.0 L、男 2.5 L）包含食物水分，且只適用溫和環境與中等活動量 [10]；國健署新版指南草案也強調需求依體型、活動量與氣候調整 [12]。因此系統不內建單一標準水量，目標由使用者自行設定，運動與飲食只作為情境特徵。→ `hydration-dashboard`
 
 **Q6（Comparison）三種提醒策略要如何公平比較？順序效應與新奇效應怎麼處理？**
+
 同一批使用者輪流使用 A／B／C 三種策略，系統記錄每段時期的策略與先後順序，以便檢視順序與新奇效應。受測者限三位組員與少數同學，結果附樣本數與限制，僅做描述性比較。實際人數與每個策略的天數列為 Open Question，取決於可招募人數。→ `strategy-comparison-experiment`、`design.md` Open Questions
 
 **Q7（Design Decision）為什麼飲水量計算、事件辨識與提醒判斷不交給 LLM？**
+
 LLM 可能產生不一致或虛構的數值，而且研究顯示「能自動執行」不等於「決策適當」[7]。因此責任切分為：確定性程式負責計算、ML 負責預測、規則護欄負責判斷（LLM 不可覆寫），LLM 只生成通知文字；生成失敗或未通過詞彙檢查時改用模板。每次決策的輸入、護欄結果與輸出都寫入紀錄，可以稽核與重現。→ `reminder-decision-agent`
 
 **Q8（Real-world）使用者連續開會兩小時、根本不能喝水，Agent 還該提醒嗎？**
+
 使用者可設定安靜時段或直接暫停，護欄判斷失敗時 Agent 一律回傳 SKIP 並記錄原因。若仍收到提醒，使用者可回覆「稍後提醒」延長冷卻，連續回覆「暫時不需要」則會依規則抑制該時段的提醒。目前不讀取行事曆，會議時段需由使用者自行設定。→ `reminder-decision-agent`、`line-feedback-loop`
 
 **Q9（Failure / Safety）醫囑限水的人（例如心臟衰竭病人）使用時，如何避免系統不當鼓勵多喝水？**
+
 系統定位為行為提醒，不做診斷、不判斷脫水，也不提供醫療級補水建議。介面提示醫囑限水者應先諮詢醫療專業人員，且可隨時暫停提醒；通知文字經詞彙檢查，不通過即改用模板。運動情境也遵循 ACSM「不宜飲用超過排汗流失量」的原則，不鼓勵過量 [11]。→ `safety-and-privacy-boundaries`
 
 **Q10（Privacy）哪些資料會送到外部 LLM？使用者要如何暫停或刪除資料？**
+
 只傳送生成通知文字所需的最少欄位，送出前去識別化，不含姓名、LINE ID 或原始重量序列。資料存在本地 SQLite，使用者可暫停提醒（暫停期間 Agent 一律 SKIP），也可刪除自己的紀錄；系統不使用相機。→ `safety-and-privacy-boundaries`
