@@ -1,0 +1,22 @@
+schema: spec-driven
+
+# 專案脈絡：只放「無法從程式碼推得」的限制
+context: |
+  專題：Smart Hydration Monitoring Agent（物聯網數據分析與應用 6679，國立中興大學，3 人組）。
+  現況：Proposal 階段，尚無程式碼；Raspberry Pi 4 為既有資源，Load Cell、HX711、杯墊結構為規劃中。
+  技術棧（規劃）：Python、FastAPI、SQLite、Next.js、scikit-learn / XGBoost、LLM API + Tool Calling、LINE Messaging API。
+  硬性限制：
+  - 不得虛構資料集、準確率、滿意度、成本或文獻；尚未實驗的數值一律標示 Planned / Expected / Illustrative Example。
+  - 不做醫療診斷或脫水判定；系統只做行為提醒與紀錄。
+  - LLM 只生成通知文字；飲水量計算、事件辨識、護欄判斷不得交給 LLM。
+  - 區分 Existing Resources / Planned Implementation / Unverified Assumptions。
+
+rules:
+  proposal:
+    - 以繁體中文撰寫，專有名詞保留英文。
+    - 必須列出 Out of scope（不做的事）。
+  specs:
+    - 每個 Requirement 至少一個 Scenario，且可驗證。
+    - 數值門檻若尚未校正，寫成「可設定的參數」，不得捏造預設值。
+  tasks:
+    - 每項任務須寫明驗證方式。
